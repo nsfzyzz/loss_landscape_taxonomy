@@ -45,7 +45,7 @@ python example_experiment.py --metrics curve CKA hessian dist loss_acc
 You can use our prior results, which are compressed and stored in `workspace/checkpoint/results.tar.gz`. Please decompress them using the command below.
 ```
 cd workspace/checkpoint/
-tar -czvf results.tar.gz
+tar -xzvf results.tar.gz
 ```
 
 After the generalization metrics are obtained, use the jupyter notebook `Load_temperature_plots.ipynb` in `workspace/src/visualization/` to visualize the results. 
