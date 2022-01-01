@@ -2,7 +2,7 @@
 
 ## Introduction
 
-This repository includes the programs to reproduce the results of the paper "Taxonomizing local versus global structure in neural network loss landscapes". The code has been tested on Python 3.8.12 with PyTorch 1.10.1 and CUDA 10.2.
+This repository includes the programs to reproduce the results of the paper [Taxonomizing local versus global structure in neural network loss landscapes](https://arxiv.org/abs/2107.11228). The code has been tested on Python 3.8.12 with PyTorch 1.10.1 and CUDA 10.2.
 
 ![Block](workspace/src/visualization/Caricature.png)
 (**Caricature of different types of loss landscapes**). Globally well-connected versus globally poorly-connected loss landscapes; and locally sharp versus locally flat loss landscapes. Globally well-connected loss landscapes can be interpreted in terms of a global “rugged convexity”; and globally well-connected and locally flat loss landscapes can be further divided into two sub-cases, based on the similarity of trained models.
