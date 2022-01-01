@@ -15,8 +15,6 @@ import sys
 sys.path.insert(1, './code/')
 from data import get_loader
 from arguments import get_parser
-from models.resnet_cifar import resnet20_cifar
-from models.resnet_depth import resnet_depth
 import pickle
 from utils import *
 from tqdm import tqdm, trange
@@ -32,32 +30,15 @@ args = parser.parse_args()
 for arg in vars(args):
     print(arg, getattr(args, arg))
 
-torch.manual_seed(args.seed)
-
-arch_kwargs = {}
-
-if args.different_width:
-    from models.resnet_width import ResNet18
-    from models.vgg_width import *
-    from models.densenet40 import DenseNet3
-    
-    arch_kwargs = {'width': args.resnet18_width}
-    if args.cifar100:
-        arch_kwargs = {'width': args.resnet18_width, 'num_classes': 100}
-    DenseNet40_kwargs = {'depth': 40, 'num_classes': 10, 'growth_rate': args.resnet18_width}
-    
-else:
-    from models.resnet import ResNet18
-    from models.vgg import *
-
-
+from models.resnet_width import ResNet18
+arch_kwargs = {'width': args.resnet18_width}
 
 # Get data
 
 args.train_bs = args.mini_hessian_batch_size
 args.test_bs = args.mini_hessian_batch_size
 
-train_loader, test_loader, _ = get_loader(args)
+train_loader, test_loader = get_loader(args)
 
 if args.train_or_test == 'train':
     eval_loader = train_loader
@@ -68,19 +49,7 @@ def return_model(file_name, arch_kwargs={}):
 
     checkpoint = torch.load(file_name)
     
-    if args.arch == 'resnet20':  
-        model = resnet20_cifar().cuda()
-    elif 'ResNet18' in args.arch:
-        model = ResNet18(**arch_kwargs).cuda()
-    elif 'VGG11' in args.arch:
-        model = VGG('VGG11', **arch_kwargs).cuda()
-    elif 'DenseNet40' in args.arch:
-        model = DenseNet3(**DenseNet40_kwargs).cuda()
-        
-    elif args.different_depth:
-        model = resnet_depth(depth=args.depth, base_channel=args.resnet18_width).cuda()
-    
-    model = torch.nn.DataParallel(model)
+    model = ResNet18(**arch_kwargs).cuda()
     model.load_state_dict(checkpoint)
     
     return model

@@ -2,161 +2,32 @@ import argparse
 import numpy as np
 import os
 
-job_limit_script = r"""job_limit () {
-    # author: https://stackoverflow.com/posts/33048123/timeline#history_be44a66e-9fa4-48ea-b4dd-b66a14ffef03
-    # Test for single positive integer input
-    if (( $# == 1 )) && [[ $1 =~ ^[1-9][0-9]*$ ]]
-    then
-        # Check number of running jobs
-        joblist=($(jobs -rp))
-        while (( ${#joblist[*]} >= $1 ))
-        do
-            # Wait for any job to finish
-            command='wait '${joblist[0]}
-            for job in ${joblist[@]:1}
-            do
-                command+=' || wait '$job
-            done
-            eval $command
-            joblist=($(jobs -rp))
-        done
-   fi
-}"""
-
-
-def get_slurm_script(args, info):
-    
-    if not args.slurm_only_commands:
-        return f"""#!/bin/bash
-#SBATCH -p rise # partition (queue)
-#SBATCH -N 1 # number of nodes requested
-#SBATCH -n {args.num_gpus} # number of tasks (i.e. processes)
-#SBATCH --cpus-per-task={args.cpus_per_task} # number of cores per task
-#SBATCH --gres=gpu:{args.num_gpus}
-#SBATCH --nodelist={args.nodes} # if you need specific nodes
-##SBATCH --exclude=ace,blaze,bombe,flaminio,freddie,luigi,pavia,r[10,16],atlas,como,havoc,steropes
-#SBATCH -t {args.request_days}-00:00 # time requested (D-HH:MM)
-#SBATCH -D {args.running_folder}
-#SBATCH -o slurm_logs/{args.log_folder}/slurm.%N.%j..out # STDOUT
-#SBATCH -e slurm_logs/{args.log_folder}/slurm.%N.%j..err # STDERR
-pwd
-hostname
-date
-echo starting job...
-source ~/.bashrc
-conda activate pytorch_p36
-export PYTHONUNBUFFERED=1
-{job_limit_script}
-{info}
-
-wait
-date
-"""
-    else:
-        return f"""{info}"""
-
-
-def get_lsf_script(args, target_gpus_string):
-    
-    return f"""#!/bin/sh
-# embedded options to bsub - start with #BSUB
-### -- set the job Name AND the job array --
-#BSUB -J {args.lsf_name}[{args.lsf_array_start}-{args.lsf_array_end}]
-### -- specify queue -- 
-#BSUB -q pbatch 
-### -- ask for number of cores (default: 1) --
-##BSUB -n 6
-#BSUB -nnodes 1
-### -- set walltime limit: hh:mm --
-#BSUB -W {args.lsf_hour}:00 
-### -- specify that we need 2GB of memory per core/slot -- 
-##BSUB -R "rusage[mem=2GB]"
-### -- set the email address --
-# please uncomment the following line and put in your e-mail address,
-# if you want to receive e-mail notifications on a non-default address
-#BSUB -u yqyang@berkeley.edu
-### -- send notification at start --
-#BSUB -B
-### -- send notification at completion--
-#BSUB -N
-### -- Specify the output and error file. %J is the job-id %I is the job-array index --
-### -- -o and -e mean append, -oo and -eo mean overwrite -- 
-#BSUB -oo ./bsub_logs/Output_{args.lsf_log_name}_%J_%I.out
-#BSUB -eo ./bsub_logs/Error_{args.lsf_log_name}_%J_%I.err 
-
-# here follow the commands you want to execute 
-# Program_name_and_options
-source ~/conda.sh
-conda activate pt
-python experiments/tracking.py --target-gpus {target_gpus_string} --memory-threshold {args.memory_threshold} --command-file {args.command_file}_"$LSB_JOBINDEX".txt
-"""
-
 
 def get_script(args, BASH_COMMAND_LIST):
     
     print("Start writing the command list!")
     
-    info = """
-"""
-    if args.script_type == "slurm":
+    info = """"""
         
-        for command in BASH_COMMAND_LIST:
+    for command in BASH_COMMAND_LIST:
 
+        if args.slurm_commands:
             info += f"srun -N 1 -n 1 --gres=gpu:1 {command} & \n \n"
-            #info += f"job_limit {args.num_gpus} \n \n"
-
-        script = get_slurm_script(args, info)
+        else:
+            info += f"{command} \n"
         
-        if os.path.isfile(args.file_name):
-            with open(args.file_name, 'w') as rsh:
-                rsh.truncate()
+        #info += f"job_limit {args.num_gpus} \n \n"
 
-        with open (args.file_name, 'w') as rsh:
-            rsh.write(script)
-            
-        os.system(f"chmod +x {args.file_name}")
-            
-    elif args.script_type == "lsf":
-        
-        target_gpus_string = " ".join([str(x) for x in args.target_gpus])
-        script = get_lsf_script(args, target_gpus_string)
-        
-        # The submission file only needs to be written once
-        if args.lsf_array_ind == args.lsf_array_start:
-            if os.path.isfile(args.file_name):
-                with open(args.file_name, 'w') as rsh:
-                    rsh.truncate()
-
-            with open (args.file_name, 'w') as rsh:
-                rsh.write(script)
-            
-        # Writing command files for a single index in the job array
-        with open(args.command_file + '_' + str(args.lsf_array_ind) + '.txt', 'w') as f:
-            for command in BASH_COMMAND_LIST:
-                f.write("{}\n".format(command))
+    script = info
     
-    elif args.script_type == "tracking":
+    if os.path.isfile(args.file_name):
+        with open(args.file_name, 'w') as rsh:
+            rsh.truncate()
+
+    with open (args.file_name, 'w') as rsh:
+        rsh.write(script)
         
-        # In this case, we generate a txt file and save
-        with open(args.command_file + '.txt', 'w') as f:
-            for command in BASH_COMMAND_LIST:
-                f.write("{}\n".format(command))
-                
-        with open(args.command_file + '.sh', 'w') as f:
-            target_gpus_string = " ".join([str(x) for x in args.target_gpus])
-            
-            f.write(f"python experiments/tracking.py --target-gpus {target_gpus_string} --memory-threshold {args.memory_threshold} --gpu-query-time {args.gpu_query_time} --submit-wait-time {args.submit_wait_time} --command-file {args.command_file}.txt")
-            
-        os.system(f"chmod +x {args.command_file}.sh")
-            
-    elif args.script_type == 'comm':
-        
-        # In this case, we generate an sh file with the send and receive commands
-        with open(args.command_file + '.sh', 'w') as f:
-            for command in BASH_COMMAND_LIST:
-                f.write("{}\n".format(command))
-                
-        os.system(f"chmod +x {args.command_file}.sh")
+    os.system(f"chmod +x {args.file_name}")
                 
             
 def get_load_temperature(args):
@@ -356,7 +227,7 @@ def get_command_list(args):
                         train_or_test_suffix += "_on_noise"
             
             # experiments for different metrics
-            if args.experiment_type == 'model_dist':
+            if args.experiment_type == 'dist':
                 
                 if args.early_stop_checkpoint:
                     command_suffix += ' --early-stopping'
@@ -477,16 +348,16 @@ def get_command_list(args):
                 # This early stopping schedule follows from Charles and Michael's paper
                 early_stopping_suffix = f' --save-early-stop --min-delta 0.0001 --patience 5'
                 if args.training_type == 'normal':
-                    command_suffix += f' --no-adv --no-result --no-lr-decay --stop-epoch {stop_epoch}{early_stopping_suffix} --save-best'
+                    command_suffix += f' --no-lr-decay --stop-epoch {stop_epoch}{early_stopping_suffix} --save-best'
                 elif args.training_type == 'small_wd':
-                    command_suffix += f' --no-adv --no-result --no-lr-decay --stop-epoch {stop_epoch}{early_stopping_suffix} --save-best'
+                    command_suffix += f' --no-lr-decay --stop-epoch {stop_epoch}{early_stopping_suffix} --save-best'
                 elif args.training_type == 'lr_scaling':
-                    command_suffix += f' --no-adv --no-result --no-lr-decay --stop-epoch {stop_epoch}{early_stopping_suffix} --save-best'    
+                    command_suffix += f' --no-lr-decay --stop-epoch {stop_epoch}{early_stopping_suffix} --save-best'    
                     
                 elif args.training_type == 'lr_decay':
                     # If we train with learning rate decay, we do not use the early stopping checkpoint
                     # This is because the early stopped checkpoint may confuse which temperature we use
-                    command_suffix += f' --no-adv --no-result --one-lr-decay --epochs 100 --save-best'
+                    command_suffix += f' --one-lr-decay --epochs 100 --save-best'
                     
                 else:
                     raise NameError('Training type not included yet!')
@@ -496,10 +367,7 @@ def get_command_list(args):
                     
                 lr, bs, wd = get_training_params(args, val)
             
-                if args.script_type != "lsf":
-                    exp_range = range(args.exp_start, args.exp_start+args.exp_num)
-                else:
-                    exp_range = range(args.lsf_array_ind-1, args.lsf_array_ind)
+                exp_range = range(args.exp_start, args.exp_start+args.exp_num)
             
                 for exp_id in exp_range:
 
@@ -549,7 +417,7 @@ def clean_command_list(args, BASH_COMMAND_LIST):
                 single_result = result
 
             if not os.path.isfile(single_result):
-                print(f"Result {single_result} do not exist, added to the list.")
+                print(f"The result file {single_result} does not exist, and it is added to the list.")
                 BASH_COMMAND_LIST_new.append(command)
             else:
                 print(f"Result {single_result} already exists!")
@@ -581,8 +449,9 @@ def clean_command_list(args, BASH_COMMAND_LIST):
 if __name__ == "__main__":
 
     print("Starting")    
-    parser = argparse.ArgumentParser(description='PyTorch Example')
-    parser.add_argument('--nodes', type=str, default = 'manchester,como', help='Experiment running nodes')
+    parser = argparse.ArgumentParser(description='Code for generating the bash scripts')
+    parser.add_argument('--slurm-commands', default=False, action='store_true')
+    parser.add_argument('--file-name', type=str, default = 'submit.sh', help='Name of the submission file')
     
     parser.add_argument('--create-folder', dest='create_folder', default = False, action='store_true',
                         help='should we create folder to store the checkpoint/results?')
@@ -590,19 +459,19 @@ if __name__ == "__main__":
                         choices = ['no_check', 'single_result', 'first_result', 'second_result', 'both_result', 'either_result'], 
                         help='should we check if the final result exists?')
     parser.add_argument('--experiment-type', type=str, default = 'train', 
-                        choices = ['train', 'CKA', 'curve', 'model_dist', 'hessian', 'loss_acc'], 
+                        choices = ['train', 'CKA', 'curve', 'dist', 'hessian', 'loss_acc'], 
                         help='which experiment do you want')
+
+    # parameters for data
     parser.add_argument('--data-type', type=str, default='subset', 
                         choices = ['random_label', 'subset', 'subset_noisy', 'subset_augmentation', 'augmix'],
                         help='which type of data do you want to train with?')
     parser.add_argument('--train-or-test', type=str, default='train',
                         choices=['train', 'test'],
-                        help='use training or testing to measure hessian')
+                        help='use training or testing to evaluate the metrics')
     parser.add_argument('--test-on-noise', dest='test_on_noise', default = False, action='store_true', 
                         help='change test data to have noisy labels also')
     parser.add_argument('--subset-noisy-prob', type=float, default=0.1, help='a fixed amount of subset noise')
-    parser.add_argument('--subset-image-noise', dest='subset_image_noise', default = False, action='store_true', 
-                        help='use image noise on top of subset data')
 
     # parameters for training
     parser.add_argument('--arch', type=str, default = 'ResNet18', help='Model architecture')
@@ -661,43 +530,9 @@ if __name__ == "__main__":
     parser.add_argument('--not-augment-CKA-for-data-augmentation-exp',  default = False, action='store_true')
     parser.add_argument('--CKA-batches',  type=int, default = 5)
     parser.add_argument('--CKA-repeat',  type=int, default = 1)
-    
-    # parameters for gpu computing
-    parser.add_argument('--script-type', type=str, default = 'slurm', choices = ['slurm', 'tracking', 'lsf', 'comm'], 
-                        help='which type of script')
-    parser.add_argument('--slurm-only-commands', default = False, dest='slurm_only_commands', action='store_true',
-                        help='do not generate slurm submission files, but only generate slurm commands')
-    parser.add_argument('--request-days', type=str, default = '1', help='Requested running days')
-    parser.add_argument('--running-folder', type=str, default = '/work/yyaoqing/Good_vs_bad_data/src', help='running folder')
-    parser.add_argument('--num-gpus', type=int, default = 8, help='Number of gpus requested')
-    parser.add_argument('--cpus-per-task', type=int, default = 8, help='Number of cpus per task')
-    #parser.add_argument('--memory-threshold', type=int, default = 200, help='memory threshold')
-    parser.add_argument('--file-name', type=str, default = 'submit.sh', help='Name of the submission file')
-    parser.add_argument('--log-folder', type=str, default = 'curve', help='Name of the submission file')
-    
-    # parameters for tracking experiment
-    parser.add_argument('--command-file', type=str, default = './command_list_files/command_list', help='The commands to run')
-    parser.add_argument('--target-gpus', type=int, nargs='+', default=[0,1,2,3,4,5,6,7],
-                    help='Which GPUs can you use?')
-    parser.add_argument('--memory-threshold', type=int, default = 200, help='memory threshold')
-    parser.add_argument('--gpu-query-time', type=int, default = 10)
-    parser.add_argument('--submit-wait-time', type=int, default = 10)
-    
-    # parameters for lassen experiment
-    parser.add_argument('--lsf-name', type=str, default = 'yaoqing', help='lsf submission name')
-    parser.add_argument('--lsf-array-ind', type=int, default = '1', help='lsf array ind')
-    parser.add_argument('--lsf-log-name', type=str, default = 'yaoqing', help='lsf log name')
-    parser.add_argument('--lsf-array-start', type=int, default=1, help='lsf array start index')
-    parser.add_argument('--lsf-array-end', type=int, default=5, help='lsf array end index')
-    parser.add_argument('--lsf-hour', type=int, default=1, help='lsf array end index')
 
-    # parameters for receiving checkpoint files
-    parser.add_argument('--remote-node', type=str, default = 'rise', choices = ['rise', 'lassen', 'mm340'], 
-                        help='which node to receive files')
-    parser.add_argument('--send-file-type', type=str, default = 'checkpoint', 
-                        choices = ['checkpoint', 'CKA', 'hessian', 'model_dist', 'curve', 'loss_acc', ''], 
-                        help='which type of script')
     
+
     args = parser.parse_args()
     
     if args.data_type == 'random_label':

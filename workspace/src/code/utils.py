@@ -70,10 +70,6 @@ def return_file_name(args, exp_id1, exp_id2):
             checkpoint2 = best_checkpoint2
             print("Using best model!")
     
-    if args.SSL_best_model:
-        checkpoint1 = os.path.join(args.checkpoint_folder, f"checkpoint.pth.tar")
-        checkpoint2 = os.path.join(args.checkpoint_folder, f"checkpoint_1.pth.tar")   
-    
     print(checkpoint1)
     print(checkpoint2)
         

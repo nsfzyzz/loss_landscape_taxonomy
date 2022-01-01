@@ -28,9 +28,8 @@ def clean_state_dict(state_dict):
     from collections import OrderedDict
     new_state_dict = OrderedDict()
     for k, v in state_dict.items():
-        # TODO: This part should have some problems
-        1/0
-        name = k[7:] # remove `module.`
+        name=k
+        #name = k[7:] # remove `module.`
         new_state_dict[name] = v
     return new_state_dict
 
@@ -159,7 +158,7 @@ arch_kwargs = {'width': args.resnet18_width}
 arch = ResNet18
 curve_arch = ResNet18Curve
 curve = getattr(curves, args.curve)
-train_loader, test_loader, traineval_loader = get_loader(args)
+train_loader, test_loader= get_loader(args)
 
 if not args.only_eval:
     model = curves.CurveNet(
@@ -204,7 +203,7 @@ if not args.only_eval:
 
     columns = ['ep', 'lr', 'tr_loss', 'tr_acc', 'te_nll', 'te_acc', 'time']
     start = time.time()
-    train_loader, test_loader, traineval_loader = get_loader(args)
+    train_loader, test_loader = get_loader(args)
     has_bn = check_bn(model)
     test_res = {'loss': None, 'accuracy': None, 'nll': None}
     for epoch in range(start_epoch, args.epochs + 1):

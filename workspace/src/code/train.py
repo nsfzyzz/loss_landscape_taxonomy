@@ -54,10 +54,7 @@ def train(args, model, train_loader, test_loader, optimizer, criterion, epoch):
     for inputs, targets in train_loader:
 
         if args.ignore_incomplete_batch:
-            if args.augmix_data:
-                if_condition = inputs[0].shape[0] != args.train_bs
-            else:
-                if_condition = inputs.shape[0] != args.train_bs
+            if_condition = inputs.shape[0] != args.train_bs
             
             if if_condition:
                 print("Neglect the last epoch so that num samples/batch size = int")

@@ -39,9 +39,6 @@ def get_loader(args):
         kwargs = {'num_workers': 2, 'pin_memory': True}
         train_set = CIFAR10Subset(root='../../data', train=True, download=True, subset=args.subset,
                                     label_path = args.random_label_path, corrupt_prob=args.label_corrupt_prob, 
-                                    image_noise = args.image_noise,
-                                    noise_path = args.noise_path, noise_type = args.noise_type, 
-                                    noise_compute = args.noise_compute, random_seed = args.seed,
                                     trainset = True, subset_noisy=args.subset_noisy, 
                                     transform=transform_train)
         train_loader = torch.utils.data.DataLoader(train_set, batch_size=args.train_bs, shuffle=True, **kwargs)

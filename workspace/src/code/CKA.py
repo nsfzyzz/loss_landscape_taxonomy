@@ -17,7 +17,7 @@ parser = get_parser(code_type='CKA')
 args = parser.parse_args()
 
 # Get data
-train_loader, test_loader, _ = get_loader(args)
+train_loader, test_loader = get_loader(args)
 
 representation_similarity = {}
 classification_similarity = {}
@@ -55,10 +55,6 @@ for exp_id1 in range(5):
                 for name in latent_all_1.keys():
 
                     print(name)
-
-                    if name == 'softmax' and not args.not_visualize:
-                        print(latent_all_1[name][:10])
-                        print(latent_all_2[name][:10])
 
                     if args.flattenHW:
                         cka_from_features.append(feature_space_linear_cka(latent_all_1[name], latent_all_2[name]))

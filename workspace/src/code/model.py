@@ -13,8 +13,6 @@ def load_checkpoint(args, file_name):
     
     checkpoint = torch.load(file_name)
     model = get_new_model(args)
-    if args.SSL_best_model:
-        checkpoint = checkpoint['state_dict']
     model.load_state_dict(checkpoint)
     
     return model

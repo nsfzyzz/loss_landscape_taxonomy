@@ -18,7 +18,7 @@ args = parser.parse_args()
 
 softmax1 = nn.Softmax().cuda()
 
-train_loader, test_loader, _ = get_loader(args)
+train_loader, test_loader = get_loader(args)
 
 results = {}
 
