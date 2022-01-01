@@ -1,3 +1,9 @@
+"""The following code is adapted from 
+PyHessian: Neural Networks Through the Lens of the Hessian
+Z. Yao, A. Gholami, K Keutzer, M. Mahoney
+https://github.com/amirgholami/PyHessian
+"""
+
 from __future__ import print_function
 
 import numpy as np
