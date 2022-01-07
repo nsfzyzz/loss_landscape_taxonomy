@@ -1,0 +1,15 @@
+name: loss_landscape
+channels:
+  - defaults
+  - pytorch
+dependencies:
+  - python==3.8.12
+  - pip==21.2.4
+  - pytorch==1.10.1
+  - torchvision==0.11.2
+  - pip:
+    - numpy==1.21.2
+    - scipy==1.7.3
+    - tabulate==0.8.9
+    - tqdm==4.62.3
+    - matplotlib==3.5.1
