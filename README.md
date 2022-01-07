@@ -13,12 +13,9 @@ different phases of learning, varying batch size to change temperature and varyi
 
 ## Usage
 
-First, follow the steps below to install the necessary packages.
+First, use the command below to install the necessary packages. This step creats an environment called `loss_landscape`.
 ```
-conda create -n loss_landscape python=3.8
-source activate loss_landscape
-conda install pytorch torchvision cudatoolkit=10.2 -c pytorch
-pip install -r requirements.txt
+conda env create
 ```
 
 #### Training
